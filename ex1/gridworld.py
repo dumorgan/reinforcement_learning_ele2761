@@ -16,11 +16,11 @@ def gridworld(s, a):
     if y == 0:
         if x == 1:
             r = 10
-            sp = 1 * 5 + 4 + 1
+            sp = 1 * 5 + 4
             return r, sp
         elif x == 3:
             r = 5
-            sp = 3 * 5 + 2 + 1
+            sp = 3 * 5 + 2
             return r, sp
 
     if a == 1:
@@ -47,5 +47,5 @@ def gridworld(s, a):
         r = -1
         y = 4
 
-    sp = x * 5 + y + 1
+    sp = x * 5 + y
     return r, sp

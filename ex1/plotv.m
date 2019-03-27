@@ -16,11 +16,11 @@ function plotv(v)
     end
 
     v = reshape(v, 5, 5);
-    pi = reshape(pi, 5, 5);
+    pi = reshape(pi, 5, 5)
     
-    ax = -(pi==4) + (pi==3);
+    ax = -(pi==4) + (pi==3)
     ay = -(pi==1) + (pi==2);
-    
+
     [x, y] = meshgrid(1:5, 1:5);
     
     quiver(x, y, ax, ay, 0.5);
