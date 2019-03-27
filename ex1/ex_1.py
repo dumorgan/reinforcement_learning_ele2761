@@ -6,7 +6,7 @@ def iterative_policy_evaluation(pi, S, theta=1e-5, gamma=0.9):
     """
     
     """
-    S = S if S is not None else np.range(start=0, stop=5*5, step=1)
+    S = S if S is not None else np.arange(start=0, stop=5*5, step=1)
     delta = 0
 
     V = np.random.random_sample(S)
