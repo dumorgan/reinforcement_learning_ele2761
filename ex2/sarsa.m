@@ -32,48 +32,63 @@ function [par, learner] = sarsa(par)
     
     function par = get_parameters(par)
         par.epsilon = 0.05;      % Random action rate
-        par.gamma = 0.99;     % Discount rate
+        par.gamma = 0.9;     % Discount rate
         par.alpha = 0.2;        % Learning rate
-        par.pos_states = 30;   % Position discretization
-        par.vel_states = 30;   % Velocity discretization
+        par.pos_states = 31;   % Position discretization
+        par.vel_states = 31;   % Velocity discretization
         par.actions = 3;      % Action discretization
         par.trials = 1000;       % Learning trials
+        par.lambda = 0.5;
     end
 
     function init_Q()
-        % TODO: Initialize the Q table.
+        Q = 0.1 * ones(par.pos_states, par.vel_states, par.actions);
+        Q(fix(par.pos_states/2), fix(par.vel_states/2), :) = 0;
     end
 
     function s = discretize_state(x)
         % TODO: Discretize state. Note: s(1) should be
         % TODO: position, s(2) velocity.
         s = [];
+        s(1) = discretize(x(1), -pi, pi, par.pos_states); 
+        s(2) = discretize(x(2), -12*pi, 12*pi, par.vel_states);
     end
 
     function a = execute_policy(s)
-        % TODO: Select an action for state s using the
-        % TODO: epsilon-greedy algorithm.
-        a = [];
+        explore = rand(1) <= par.epsilon;
+        if explore
+            a = fix(rand(1) * par.actions) + 1;
+        else
+            max_val = max(Q(s(1), s(2), :));
+            candidates = find(Q(s(1), s(2), :) == max_val)
+            idx = randi(length(candidates));
+            a = candidates(idx);
+        end
     end
 
     function r = observe_reward(a, sP)
-        % TODO: Calculate the reward for taking action a,
-        % TODO: resulting in state sP.
-        r = [];
+        if isequal(sP, discretize_state([0 0]))
+            r = 1;
+        else
+            r = 0;
+        end
     end
 
     function t = is_terminal(sP)
-        % TODO: Return 1 if state sP is terminal, 0 otherwise.
-        t = [];
+        t = isequal(sP, discretize_state([0 0]));
     end
 
     function update_Q(s, a, r, sP, aP)
-        % TODO: Implement the SARSA update rule.
+%       current_value = Q(s(1), s(2), a);
+%       Q(s(1), s(2), a) =  current_value + par.alpha * ...
+%            (r + par.gamma * Q(sP(1), sP(2), aP) - current_value);
+        e = par.gamma * par.lambda * e;
+        e(s(1), s(2), a) =  1;
+        Q = Q + par.alpha * (r + par.gamma * Q(sP(1), sP(2), aP) - Q(s(1), s(2), a)) * e;
     end
 
     function u = take_action(a)
-        % TODO: Calculate the proper voltage for action a. This cannot
-        % TODO: exceed par.maxvoltage.
-        u = [];
+        voltages = linspace(-par.maxvoltage, par.maxvoltage, par.actions);
+        u = voltages(a);
     end
 end
