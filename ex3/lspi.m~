@@ -12,12 +12,13 @@ function [learner] = lspi()
     learner.centers = set_centers();
     
     function par = get_parameters()
+        par.epsilon = 0.05;      % Random action rate
         par.gamma = 0.99;     % Discount rate
+        par.alpha = 0.2;        % Learning rate
         par.pos_states = 11;   % Position discretization
         par.vel_states = 11;   % Velocity discretization
         par.actions = 3;      % Action discretization
         par.batch_size = 10000;       % Batch Size
-        par.iterations = 10;
     end
 
     function theta = discretize_position()
@@ -56,12 +57,13 @@ function [learner] = lspi()
     end
 
     function policy = set_policy()
-        policy = rand(par.batch_size, 1) * 6 - 3;
+        policy = rand(par.batch_size) * 6 - 3;
     end
 
     function distances = compute_distances(s, a)
         examples = [s, a];
-        distances = pdist2(examples, learner.centers, 'seuclidean', [1 12 1]);
+        size(examples
+        distances = pdist2(examples, learner.centers, 'seuclidean', [1 1/12 1]);
     end
 
     function features = compute_features(distances)
@@ -74,25 +76,26 @@ function [learner] = lspi()
             examples = learner.batch;
             state = examples(:, 1:2);
             action = examples(:, 3);
-            phi_current = compute_features(compute_distances(state, action));
+            pi_current = compute_features(compute_distances(state, action));
             
             next_state = examples(:, 4:5);
             next_action = policy;
-            phi_next = compute_features(compute_distances(next_state, next_action));
+            size(next_action);
+            pi_next = compute_features(compute_distances(next_state, next_action));
             
-            A = phi_current - par.gamma * phi_next;
+            A = pi_current - par.gamma * pi_next;
             theta = learner.reward \ A;
             
-            rewards = zeros(par.batch_size, 3);
+            rewards = zeros(batch_size, 3);
             for action=1:par.actions
-                phi = compute_features(compute_distances(next_state, learner.voltage(action) + zeros(par.batch_size, 1)));
-                phi = phi * theta';
-                rewards(:, action) = phi;
+                x = compute_features(next_state, learner.voltage(action) + zeros(batch_size));
+                x = x' * theta;
+                rewards(actions) = x;
             end
-            [_, argmax] = max(rewards, [], 2);
+            [maxval, argmax] = max(rewards, [], 2);
             policy = (argmax - 2) * 3;
         end
     end
 
-    learner.policy = policy_iteration(par.iterations);
+    policy_iteration(10);
 end
