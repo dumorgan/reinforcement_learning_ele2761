@@ -1,5 +1,4 @@
 function [learner] = lspi()
-    
     par = get_parameters();
 
     learner.theta = discretize_position();
@@ -12,7 +11,7 @@ function [learner] = lspi()
     learner.centers = set_centers();
     
     function par = get_parameters()
-        par.gamma = 0.99;     % Discount rate
+        par.gamma = 0.9;     % Discount rate
         par.pos_states = 11;   % Position discretization
         par.vel_states = 11;   % Velocity discretization
         par.actions = 3;      % Action discretization
@@ -52,7 +51,7 @@ function [learner] = lspi()
     end
     function reward = reward()
         batch = learner.batch;
-        reward = - 5 * batch(:, 4).^2 - batch(:, 5).^2 - batch(:, 3).^2;
+        reward = - 5 * (batch(:, 4).^2) - 0.1* (batch(:, 5).^2) - batch(:, 3).^2;
     end
 
     function policy = set_policy()
@@ -77,22 +76,24 @@ function [learner] = lspi()
             phi_current = compute_features(compute_distances(state, action));
             
             next_state = examples(:, 4:5);
+            scatter(next_state(:, 1), next_state(:, 2), 10, policy);
+            drawnow;
             next_action = policy;
             phi_next = compute_features(compute_distances(next_state, next_action));
             
             A = phi_current - par.gamma * phi_next;
-            theta = learner.reward \ A;
+            theta = A \ learner.reward;
             
-            rewards = zeros(par.batch_size, 3);
+            td = zeros(par.batch_size, 3);
             for action=1:par.actions
                 phi = compute_features(compute_distances(next_state, learner.voltage(action) + zeros(par.batch_size, 1)));
-                phi = phi * theta';
-                rewards(:, action) = phi;
+                phi = phi * theta;
+                td(:, action) = phi;
             end
-            [_, argmax] = max(rewards, [], 2);
+            [maxval, argmax] = max(td, [], 2);
             policy = (argmax - 2) * 3;
         end
     end
 
-    learner.policy = policy_iteration(par.iterations);
+    learner.resulting_policy = policy_iteration(par.iterations);
 end
