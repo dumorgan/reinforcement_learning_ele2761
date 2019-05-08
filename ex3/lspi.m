@@ -64,11 +64,13 @@ function [learner] = lspi()
     end
 
     function features = compute_features(distances)
-        features = normpdf(distances);
+        features = normpdf(distances, 0, 10);
     end
 
     function policy = policy_iteration(n)
         policy = learner.policy;
+        old_policy = policy;
+        convergence = zeros(n, 1)
         for i=1:n
             examples = learner.batch;
             state = examples(:, 1:2);
@@ -76,7 +78,8 @@ function [learner] = lspi()
             phi_current = compute_features(compute_distances(state, action));
             
             next_state = examples(:, 4:5);
-            scatter(next_state(:, 1), next_state(:, 2), 10, policy);
+            figure(1);
+            scatter(next_state(:, 1), next_state(:, 2), 50, policy);
             drawnow;
             next_action = policy;
             phi_next = compute_features(compute_distances(next_state, next_action));
@@ -92,7 +95,11 @@ function [learner] = lspi()
             end
             [maxval, argmax] = max(td, [], 2);
             policy = (argmax - 2) * 3;
+            convergence(i) = sum(abs(policy - old_policy));
+            old_policy = policy;
         end
+        figure(2);
+        plot(convergence);
     end
 
     learner.resulting_policy = policy_iteration(par.iterations);
