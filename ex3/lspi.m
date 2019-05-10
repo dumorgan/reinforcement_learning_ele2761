@@ -11,7 +11,7 @@ function [learner] = lspi()
     learner.centers = set_centers();
     
     function par = get_parameters()
-        par.gamma = 0.9;     % Discount rate
+        par.gamma = 0.99;     % Discount rate
         par.pos_states = 11;   % Position discretization
         par.vel_states = 11;   % Velocity discretization
         par.actions = 3;      % Action discretization
@@ -42,7 +42,7 @@ function [learner] = lspi()
         batch = rand(par.batch_size, 5);
         batch(:, 1) = batch(:, 1) * 2* pi - pi;
         batch(:, 2) = batch(:, 2) * 24* pi - 12 * pi;
-        batch(:, 3) = batch(:, 3) * 6 - 3;
+        batch(:, 3) = 3*(randi(3, par.batch_size, 1) - 2);
         for i=1:par.batch_size
             sp = pendulum(batch(i, 1:2), batch(i, 3)); 
             batch(i, 4) = sp(1);
@@ -80,6 +80,9 @@ function [learner] = lspi()
             next_state = examples(:, 4:5);
             figure(1);
             scatter(next_state(:, 1), next_state(:, 2), 50, policy);
+            colorbar;
+            xlabel('Position');
+            ylabel('Velocity');
             drawnow;
             next_action = policy;
             phi_next = compute_features(compute_distances(next_state, next_action));
