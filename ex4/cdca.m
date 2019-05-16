@@ -3,12 +3,6 @@
 
 function [learner] = cdca()
     par = get_parameters();
-
-    learner.theta = discretize_position();
-    learner.d_theta = discretize_velocity();
-    learner.voltage = discretize_voltage();
-    learner.features = set_centers();
-    learner.centers = set_centers();
     learner.reward = @reward;
     
     function par = get_parameters()
@@ -16,64 +10,70 @@ function [learner] = cdca()
         par.pos_states = 11;   % Position discretization
         par.vel_states = 11;   % Velocity discretization
         par.actions = 3;      % Action discretization
-        par.num_episodes = 10;       % Batch Size
+        par.num_episodes = 1000;    
         par.time_steps = 100;
-        par.alpha = 0.5;
-        par.beta = 0.5;
-        par.sigma = 1;
-    end
-
-    function theta = discretize_position()
-        theta = linspace(-pi, pi, par.pos_states);
-    end
-
-    function d_theta = discretize_velocity()
-        d_theta = linspace(-12*pi, 12*pi, par.vel_states);
-    end
-    
-    function voltage = discretize_voltage()
-        voltage = linspace(-3, 3, par.actions);
-    end
-
-    function centers = set_centers()
-        [s1, s2] = meshgrid(learner.theta, learner.d_theta);
-        centers = [s1(:) s2(:)];
+        par.alpha = 0.2;
+        par.beta = 0.001;
+        par.ni = 0.0001;
+        par.exploration_rate = 1;
     end
 
     function reward = reward(s, a)
         reward = - 5 * s(1).^2 - 0.1* s(2).^2 - a.^2;
     end
 
-    function distances = compute_distances(s)
-        distances = pdist2(s, learner.centers, 'seuclidean', [1 12]);
+    function adv = advantage_function(phi_s, theta, a, w)
+        policy = phi_s' * theta;
+        adv = (a - policy) * phi_s' * w;
     end
 
-    function features = compute_features(s)
-        distances = compute_distances(s);
-        features = normpdf(distances, 0, 1);
+    function value_state = value_state_function(phi_s, v)
+        value_state = phi_s' * v;
     end
-
-    shape = size(learner.centers);
-    theta = zeros(shape(1), 1);
-    omega = zeros(shape(1), 1);
-    v = zeros(shape(1), 1);
     
+    function phi = compute_phi(x)
+        phi = gaussrbf(x, par.pos_states, 1);
+    end
+
+    shape = par.pos_states * par.vel_states;
+   
+    theta = zeros(shape, 1);
+    w = rand(shape, 1);
+    v = rand(shape, 1);
+    total_reward = zeros(par.num_episodes, 1);
     for i=1:par.num_episodes
         s = [pi, 0];
-        phi = compute_features(s);
-        a = phi * theta + normrnd(0, 1);
+        phi = compute_phi(s);
+        a = phi' * theta + normrnd(0, par.exploration_rate);
         for t=1:par.time_steps
-            s_prime = pendulum(s, a);
             r = learner.reward(s, a);
-            a_prime = phi * theta + normrnd(0, 1);
+            total_reward(i) = total_reward(i) + r;
+            s_prime = pendulum(s, a);
+            phi_prime = compute_phi(s_prime);
+            a_prime = phi_prime' * theta + normrnd(0, par.exploration_rate);
             
-            % this won't work, I don't know how Q should be computed
-            delta = r + par.gamma * Q(s_prime, a_prime, omega) - Q(s, a, omega);
-            omega = omega + par.alpha * delta * (a - phi * theta) * phi;
+            Q_prime = advantage_function(phi_prime, theta, a_prime, w) + ...
+                value_state_function(phi_prime, v);
+            
+            Q = advantage_function(phi, theta, a, w) + ... 
+                value_state_function(phi, v);
+            
+            delta = r + par.gamma * Q_prime - Q;
+            w = w + par.alpha * delta * (a - phi' * theta) * phi;
             v = v + par.alpha * delta * phi;
-            theta = theta + par.belta * phi(s) * omega * phi(s);
+            theta = theta + par.beta * phi' * w * phi;
+            theta = min(max(theta, -3), 3);
             s = s_prime;
             a = a_prime;
+            phi = compute_phi(s);
         end
+        plotip(theta, v);
+        subplot(2, 2, 3);
+        plot(1:i, total_reward(1:i));
+        title('Accumulated reward per episode');
+        xlabel('Episode');
+        ylabel('Accumulated reward');
+        drawnow;
+        par.exploration_rate = par.exploration_rate * (1 - par.ni);
     end
 end
