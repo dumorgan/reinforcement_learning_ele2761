@@ -16,6 +16,7 @@ function [learner] = cdca()
         par.beta = 0.001;
         par.ni = 0.0001;
         par.exploration_rate = 1;
+        par.rbf = 1;
     end
 
     function reward = reward(s, a)
@@ -32,7 +33,7 @@ function [learner] = cdca()
     end
     
     function phi = compute_phi(x)
-        phi = gaussrbf(x, par.pos_states, 1);
+        phi = gaussrbf(x, par.pos_states, par.rbf);
     end
 
     shape = par.pos_states * par.vel_states;
@@ -41,7 +42,9 @@ function [learner] = cdca()
     w = rand(shape, 1);
     v = rand(shape, 1);
     total_reward = zeros(par.num_episodes, 1);
+    episode_time = zeros(par.num_episodes, 1);
     for i=1:par.num_episodes
+        tic
         s = [pi, 0];
         phi = compute_phi(s);
         a = phi' * theta + normrnd(0, par.exploration_rate);
@@ -67,13 +70,24 @@ function [learner] = cdca()
             a = a_prime;
             phi = compute_phi(s);
         end
-        plotip(theta, v);
-        subplot(2, 2, 3);
-        plot(1:i, total_reward(1:i));
-        title('Accumulated reward per episode');
-        xlabel('Episode');
-        ylabel('Accumulated reward');
-        drawnow;
+        episode_time(i) = toc;
         par.exploration_rate = par.exploration_rate * (1 - par.ni);
     end
+    plotip(theta, v, @compute_phi);
+    subplot(2, 2, 3);
+    plot(total_reward);
+    title('Accumulated reward per episode');
+    xlabel('Episode');
+    ylabel('Accumulated reward');
+    drawnow;
+    learner.final_reward = mean(total_reward(length(total_reward) - 10: end));
+    learner.std = std(total_reward(length(total_reward) - 10: end));
+    for i=1:par.num_episodes
+        if total_reward(i) >= 0.95 * learner.final_reward
+            learner.iter_to_converge = i;
+            break
+        end
+    end
+    learner.average_time = mean(episode_time);
+    learner
 end
