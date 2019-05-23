@@ -1,14 +1,8 @@
 % Compatible deterministic actor-critic reinforcement learning algorithm
 % for solving the inverse pendulum task
 
-function [learner] = cdca(alpha, beta, sigma)
+function [learner] = cdca()
     par = get_parameters();
-
-    learner.theta = discretize_position();
-    learner.d_theta = discretize_velocity();
-    learner.voltage = discretize_voltage();
-    learner.features = set_centers();
-    learner.centers = set_centers();
     learner.reward = @reward;
     
     function par = get_parameters()
@@ -16,57 +10,61 @@ function [learner] = cdca(alpha, beta, sigma)
         par.pos_states = 11;   % Position discretization
         par.vel_states = 11;   % Velocity discretization
         par.actions = 3;      % Action discretization
-        par.num_episodes = 10;       % Batch Size
+        par.num_episodes = 500;    
         par.time_steps = 100;
-    end
-
-    function theta = discretize_position()
-        theta = linspace(-pi, pi, par.pos_states);
-    end
-
-    function d_theta = discretize_velocity()
-        d_theta = linspace(-12*pi, 12*pi, par.vel_states);
-    end
-    
-    function voltage = discretize_voltage()
-        voltage = linspace(-3, 3, par.actions);
-    end
-
-    function centers = set_centers()
-        [s1, s2] = meshgrid(learner.theta, learner.d_theta);
-        centers = [s1(:) s2(:)];
+        par.alpha = 0.2;
+        par.beta = 0.0001;
     end
 
     function reward = reward(s, a)
-        batch = learner.batch;
-        reward = - 5 * s(0).^2 - 0.1* s(1).^2 - a.^2;
+        reward = - 5 * s(1).^2 - 0.1* s(2).^2 - a.^2;
     end
 
-    function distances = compute_distances(s)
-        distances = pdist2(s, learner.centers, 'seuclidean', [1 12]);
+    function adv = advantage_function(phi_s, theta, a, w)
+        policy = phi_s' * theta;
+        adv = (a - policy) * phi_s' * w;
     end
 
-    function features = compute_features(s)
-        distances = compute_distances(s);
-        features = normpdf(distances, 0, 10);
+    function value_state = value_state_function(phi_s, v)
+        value_state = phi_s' * v;
     end
-
-    shape = size(learner.centers);
-    theta = zeros(shape(1), 1);
-    omega = zeros(shape(1), 1);
-    v = zeros(shape(1), 1);
+    
+    function phi = compute_phi(s)
+        phi = gaussrbf(s);
+    end
+    shape = par.pos_states * par.vel_states;
+   
+    theta = zeros(shape, 1);
+    w = rand(shape, 1);
+    v = rand(shape, 1);
     
     for i=1:par.num_episodes
         s = [pi, 0];
-        phi = compute_features(s);
-        a = phi * theta + normrnd(0, 1);
+        phi = compute_phi(s);
+        a = phi' * theta + normrnd(0, 1);
         for t=1:par.time_steps
-            s_prime = pendulum(s, a);
-            reward = learner.reward(s, a);
-            a_prime = phi * theta + normrnd(0, 1);
+            r = learner.reward(s, a);
             
-            % this won't work, I
-            delta = reward + par.gamma * Q(s_prime, a_prime, omega) - Q(s, a, omega);
+            s_prime = pendulum(s, a);
+            phi_prime = compute_phi(s_prime, par.pos_states, 0.5);
+            a_prime = phi_prime' * theta + normrnd(0, 1);
+            
+            Q_prime = advantage_function(phi_prime, theta, a_prime, w) + ...
+                value_state_function(phi_prime, v);
+            
+            Q = advantage_function(phi, theta, a, w) + ... 
+                value_state_function(phi, v);
+            
+            delta = r + par.gamma * Q_prime - Q;
+            w = w + par.alpha * delta * (a - phi' * theta) * phi;
+            v = v + par.alpha * delta * phi;
+            theta = theta + par.beta * phi' * w * phi;
+            theta = min(max(theta, -3), 3);
+            s = s_prime;
+            a = a_prime;
+            phi = gaussrbf(s, par.pos_states, 0.5);
         end
+        plotip(theta, v);
+        drawnow;
     end
 end
