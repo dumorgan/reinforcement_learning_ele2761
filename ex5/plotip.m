@@ -23,7 +23,7 @@ function plotip(theta, w, feature)
     s = [pos(:), vel(:)];
     phi = feature(s);
     p = phi'*theta;
-    subplot(2, 2, 2);
+    subplot(3, 2, 2);
     surf(reshape(s(:, 1), 51, 51), reshape(s(:, 2), 51, 51), reshape(p, 51, 51));
     shading interp
     axis([-pi pi -12*pi 12*pi])
@@ -39,7 +39,7 @@ function plotip(theta, w, feature)
             v = phi'*w;
         end
     
-        subplot(2, 2, 1);
+        subplot(3, 2, 1);
         surf(reshape(s(:, 1), 51, 51), reshape(s(:, 2), 51, 51), reshape(v, 51, 51));
         shading interp
         axis([-pi pi -12*pi 12*pi])
