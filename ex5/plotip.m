@@ -29,6 +29,7 @@ function plotip(theta, w, feature)
     axis([-pi pi -12*pi 12*pi])
     colormap jet
     colorbar
+    title('Policy');
     
     if ~isempty(w)
         if numel(w) == numel(theta)
@@ -45,6 +46,7 @@ function plotip(theta, w, feature)
         axis([-pi pi -12*pi 12*pi])
         colormap jet
         colorbar
+        title('Value Function');
     end
     
 end

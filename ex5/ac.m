@@ -11,7 +11,7 @@ function [ep, rt, network] = ac
     beta = 0.01;
     gamma = 0.99;
     hidden_units = [10, 10];
-    num_episodes = 100;
+    num_episodes = 300;
     episode_length = 100;
     augmented_size = 20;
     
@@ -23,6 +23,7 @@ function [ep, rt, network] = ac
     w = randn(sz, 1);
     
     curve = zeros(1, num_episodes);
+    net_curve = zeros(1, num_episodes);
     b = zeros(100, 3);
     sigma = 1;
     
@@ -56,7 +57,6 @@ function [ep, rt, network] = ac
     [test_features, test_targets] = generate_examples();
     errors = zeros(numel(curve) / 5, 1);
     % Episodes
-    n_sample = 1;
     epoch = 1;
     for ee = 1:numel(curve)
         sigma = sigma*0.99;
@@ -70,7 +70,7 @@ function [ep, rt, network] = ac
                 ac_loop(new_pendulum, @feature, x, fx, b, ...
                 state_action, next_state, ee, theta, w, curve, sigma, ii, gamma, beta, alpha);
         end
-        if (rem(ee, 5) == 0)
+        if (ee > 20 && rem(ee, 5) == 0)
             inputs = state_action(:, :, 1:ee);
             targets = next_state(:, :, 1:ee);
             inputs = reshape(inputs, [3, size(inputs, 2) * size(inputs, 3)]);
@@ -83,7 +83,6 @@ function [ep, rt, network] = ac
             plot(errors(1:epoch));
             epoch = epoch + 1;
             title('Test error');
-            xlabel('Episode');
             ylabel('MSE');
             drawnow;
             
@@ -91,17 +90,19 @@ function [ep, rt, network] = ac
             x = [pi, 0];
             fx = feature(x);
             for ii=1:augmented_size
-                [theta, w, state_action, next_state, b, curve, fx, x, sigma] = ...
+                [theta, w, state_action, next_state, b, net_curve, fx, x, sigma] = ...
                 ac_loop(network, @feature, x, fx, b, ...
-                    state_action, next_state, ee, theta, w, curve, sigma, ii, gamma, beta, alpha);
+                    state_action, next_state, ee, theta, w, net_curve, sigma, ii, gamma, beta, alpha);
             end
         end
         if (rem(ee, 10) == 0)
             subplot(3, 2, 3);
             plot(curve);
+            title('Accumulated reward');
             subplot(3, 2, 4);
             x = 1:size(b, 1);
             plot(x, b(:,1), x, b(:, 2), x, b(:, 3));
+            title('Pendulum State Variables');
             axis([0 size(b, 1) -10 10]);
             drawnow;
         end
