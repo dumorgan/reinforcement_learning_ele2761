@@ -1,4 +1,4 @@
-function [ep, rt, network] = ac
+function [ep, rt, network] = ac(augmented_size)
 %State-value actor-critic for the pendulum.
 %   [EP, RT] returns the end performance and rise time of state-value
 %   actor-critic on the underactuated pendulum swing-up.
@@ -11,9 +11,11 @@ function [ep, rt, network] = ac
     beta = 0.01;
     gamma = 0.99;
     hidden_units = [10, 10];
-    num_episodes = 300;
+    num_episodes = 200;
     episode_length = 100;
-    augmented_size = 20;
+    if ~exist('augmented_size', 'var')
+        augmented_size = 20;
+    end
     
     % Get feature vector size
     sz = numel(feature([0 0]));
@@ -61,39 +63,32 @@ function [ep, rt, network] = ac
     for ee = 1:numel(curve)
         sigma = sigma*0.99;
         
-        x = [pi, 0];
-        fx = feature(x);
-        for ii=1:size(b, 1)
-            % Choose action
-            new_pendulum = @(k) pendulum(k(1:2), k(3));
-            [theta, w, state_action, next_state, b, curve, fx, x, sigma] = ...
-                ac_loop(new_pendulum, @feature, x, fx, b, ...
-                state_action, next_state, ee, theta, w, curve, sigma, ii, gamma, beta, alpha);
-        end
-        if (ee > 20 && rem(ee, 5) == 0)
-            inputs = state_action(:, :, 1:ee);
-            targets = next_state(:, :, 1:ee);
-            inputs = reshape(inputs, [3, size(inputs, 2) * size(inputs, 3)]);
-            targets = reshape(targets, [2, size(targets, 2) * size(targets, 3)]);
-            network = train(network, inputs, targets);
-            
-            predictions = network(test_features);
-            errors(epoch) = mse(network, test_targets, predictions);
-            subplot(3, 2, 5);
-            plot(errors(1:epoch));
-            epoch = epoch + 1;
-            title('Test error');
-            ylabel('MSE');
-            drawnow;
-            
-            
-            x = [pi, 0];
-            fx = feature(x);
-            for ii=1:augmented_size
-                [theta, w, state_action, next_state, b, net_curve, fx, x, sigma] = ...
-                ac_loop(network, @feature, x, fx, b, ...
-                    state_action, next_state, ee, theta, w, net_curve, sigma, ii, gamma, beta, alpha);
+        % Choose action
+        new_pendulum = @(k) pendulum(k(1:2), k(3));
+        [theta, w, state_action, next_state, b, curve, sigma] = ...
+            ac_loop(episode_length, new_pendulum, @feature, b, ...
+            state_action, next_state, ee, theta, w, curve, sigma, gamma, beta, alpha);
+        if (ee >= 10)
+            if rem(ee, 5) == 0
+                inputs = state_action(:, :, 5:ee);
+                targets = next_state(:, :, 5:ee);
+                inputs = reshape(inputs, [3, size(inputs, 2) * size(inputs, 3)]);
+                targets = reshape(targets, [2, size(targets, 2) * size(targets, 3)]);
+                network = train(network, inputs, targets);
+                predictions = network(test_features);
+                errors(epoch) = mse(network, test_targets, predictions);
+                subplot(3, 2, 5);
+                plot(errors(1:epoch));
+                epoch = epoch + 1;
+                title('Test error');
+                ylabel('MSE');
+                xlabel('5x episodes');
+                drawnow;
             end
+            [theta, w, state_action, next_state, b, net_curve, sigma] = ...
+            ac_loop(augmented_size, network, @feature, b, ...
+                state_action, next_state, ee, theta, w, net_curve, sigma, gamma, beta, alpha);
+
         end
         if (rem(ee, 10) == 0)
             subplot(3, 2, 3);
