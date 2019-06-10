@@ -5,7 +5,7 @@ for i=1:10
     [ep, rt, network] = ac();
     performance(i) = ep;
     if isempty(rt)
-        rise_time(i) = 300;
+        rise_time(i) = 200;
     else
         rise_time(i) = rt;    
     end
