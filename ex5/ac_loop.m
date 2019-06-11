@@ -6,7 +6,7 @@ function [theta, w, state_action, next_state, b, curve, sigma] = ...
     for ii=1:transitions
         actor_u = fx'*theta;
         if random == 1
-            u = rand(3, 1) * 6 - 3;
+            u = rand() * 6 - 3;
         else
             u = actor_u+randn*sigma;
         end
