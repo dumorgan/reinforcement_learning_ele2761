@@ -1,10 +1,15 @@
 function [theta, w, state_action, next_state, b, curve, sigma] = ...
-     ac_loop(transitions, transition_function, feature, b, state_action, next_state, ee, theta, w, curve, sigma, gamma, beta, alpha)
+     ac_loop(transitions, transition_function, feature, b, state_action, ...
+     next_state, ee, theta, w, curve, sigma, gamma, beta, alpha, random)
     x = [pi, 0];
     fx = feature(x);
     for ii=1:transitions
         actor_u = fx'*theta;
-        u = actor_u+randn*sigma;
+        if random == 1
+            u = rand(3, 1) * 6 - 3;
+        else
+            u = actor_u+randn*sigma;
+        end
 
         b(ii, 1:2) = x;
         b(ii, 3) = u;

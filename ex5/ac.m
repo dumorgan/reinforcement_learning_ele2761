@@ -1,4 +1,4 @@
-function [ep, rt, network] = ac(augmented_size)
+function [ep, rt, network] = ac(augmented_size, random)
 %State-value actor-critic for the pendulum.
 %   [EP, RT] returns the end performance and rise time of state-value
 %   actor-critic on the underactuated pendulum swing-up.
@@ -67,7 +67,7 @@ function [ep, rt, network] = ac(augmented_size)
         new_pendulum = @(k) pendulum(k(1:2), k(3));
         [theta, w, state_action, next_state, b, curve, sigma] = ...
             ac_loop(episode_length, new_pendulum, @feature, b, ...
-            state_action, next_state, ee, theta, w, curve, sigma, gamma, beta, alpha);
+            state_action, next_state, ee, theta, w, curve, sigma, gamma, beta, alpha, random);
         if (ee >= 10)
             if rem(ee, 5) == 0
                 inputs = state_action(:, :, 5:ee);
@@ -83,11 +83,10 @@ function [ep, rt, network] = ac(augmented_size)
                 title('Test error');
                 ylabel('MSE');
                 xlabel('5x episodes');
-                drawnow;
             end
             [theta, w, state_action, next_state, b, net_curve, sigma] = ...
             ac_loop(augmented_size, network, @feature, b, ...
-                state_action, next_state, ee, theta, w, net_curve, sigma, gamma, beta, alpha);
+                state_action, next_state, ee, theta, w, net_curve, sigma, gamma, beta, alpha, random);
 
         end
         if (rem(ee, 10) == 0)
@@ -99,7 +98,6 @@ function [ep, rt, network] = ac(augmented_size)
             plot(x, b(:,1), x, b(:, 2), x, b(:, 3));
             title('Pendulum State Variables');
             axis([0 size(b, 1) -10 10]);
-            drawnow;
         end
         
         if (rem(ee, 100) == 0)
