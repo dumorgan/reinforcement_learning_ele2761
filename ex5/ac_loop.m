@@ -15,9 +15,9 @@ function [theta, w, state_action, next_state, b, curve, sigma] = ...
         s(3) = u;
         % Get next state
         if random == 1
+            xP = zeros(2, 1);
             xP(1) = rand() * 2 * pi - pi;
             xP(2) = rand() * 24 * pi - 12 * pi;
-            xP = xP';
         else
             xP = transition_function(s);
         end
