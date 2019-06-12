@@ -27,11 +27,12 @@ for s=1:6
     rise_time = zeros(10, 1);
     computation_time = zeros(10, 1);
     for r=1:10
-        [ep, rt, network, comp_time] = ac(simulated_experience(s), 0);
-        computation_time(r) = comp_time;
+        tic
+        [ep, rt, network] = ac(simulated_experience(s), 0);
+        computation_time(r) = toc;
         performance(r) = ep;
         if isempty(rt)
-            rise_time(r) = 100;
+            rise_time(r) = 200;
         else
             rise_time(r) = rt;    
         end
@@ -53,8 +54,9 @@ for s=1:6
     rise_time = zeros(10, 1);
     computation_time = zeros(10, 1);
     for r=1:10
-        [ep, rt, network, comp_time] = ac(simulated_experience(s), 1);
-        computation_time(r) = comp_time;
+        tic
+        [ep, rt, network] = ac(simulated_experience(s), 1);
+        computation_time(r) = toc;
         performance(r) = ep;
         if isempty(rt)
             rise_time(r) = 100;

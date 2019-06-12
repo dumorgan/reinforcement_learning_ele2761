@@ -4,12 +4,9 @@ function [theta, w, state_action, next_state, b, curve, sigma] = ...
     x = [pi, 0];
     fx = feature(x);
     for ii=1:transitions
-        actor_u = fx'*theta;
-        if random == 1
-            u = rand() * 6 - 3;
-        else
-            u = actor_u+randn*sigma;
-        end
+        actor_u = fx'*theta;    
+        u = actor_u+randn*sigma;
+ 
 
         b(ii, 1:2) = x;
         b(ii, 3) = u;
@@ -17,7 +14,14 @@ function [theta, w, state_action, next_state, b, curve, sigma] = ...
         s(1:2) = x;
         s(3) = u;
         % Get next state
-        xP = transition_function(s);
+        if random == 1
+            xP(1) = rand() * 2 * pi - pi;
+            xP(2) = rand() * 24 * pi - 12 * pi;
+            xP = xP';
+        else
+            xP = transition_function(s);
+        end
+        % Breaks if state is out-of-bounds of system expected dynamics
         if xP(1) < -pi || xP(1) > pi || xP(2) < -12 * pi || xP(2) > 12 *pi
             break
         else

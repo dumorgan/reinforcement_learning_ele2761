@@ -1,4 +1,4 @@
-function [ep, rt, network] = ac(augmented_size, random)
+function [ep, rt, network, comp_time] = ac(augmented_size, random)
 %State-value actor-critic for the pendulum.
 %   [EP, RT] returns the end performance and rise time of state-value
 %   actor-critic on the underactuated pendulum swing-up.
@@ -11,7 +11,7 @@ function [ep, rt, network] = ac(augmented_size, random)
     beta = 0.01;
     gamma = 0.99;
     hidden_units = [10, 10];
-    num_episodes = 200;
+    num_episodes = 100;
     episode_length = 100;
     if ~exist('augmented_size', 'var')
         augmented_size = 20;
@@ -60,6 +60,8 @@ function [ep, rt, network] = ac(augmented_size, random)
     errors = zeros(numel(curve) / 5, 1);
     % Episodes
     epoch = 1;
+    comp_time = -1;
+    tic
     for ee = 1:numel(curve)
         sigma = sigma*0.99;
         
@@ -67,8 +69,11 @@ function [ep, rt, network] = ac(augmented_size, random)
         new_pendulum = @(k) pendulum(k(1:2), k(3));
         [theta, w, state_action, next_state, b, curve, sigma] = ...
             ac_loop(episode_length, new_pendulum, @feature, b, ...
-            state_action, next_state, ee, theta, w, curve, sigma, gamma, beta, alpha, random);
+            state_action, next_state, ee, theta, w, curve, sigma, gamma, beta, alpha, 0);
+        % After 10 episodes have elapsed, use NN to generate simulated
+        % experience
         if (ee >= 10)
+            % Re-trains the network every 5 episodes
             if rem(ee, 5) == 0
                 inputs = state_action(:, :, 5:ee);
                 targets = next_state(:, :, 5:ee);
@@ -103,8 +108,19 @@ function [ep, rt, network] = ac(augmented_size, random)
         if (rem(ee, 100) == 0)
             plotip(theta, w, @feature);
         end
+        if ee > 10
+            if comp_time == -1
+                if curve(ee-2: ee) > -1000
+                    comp_time = toc;
+                end
+            end
+        end
     end
-
+    
+    if comp_time == -1;
+        comp_time = toc;
+    end
+    
     ep = mean(curve(end-10:end));
     
     reached = curve > -1000;
@@ -114,5 +130,4 @@ function [ep, rt, network] = ac(augmented_size, random)
     function phi = feature(x)
         phi = gaussrbf(x, 11, 0.5);
     end
-
 end
